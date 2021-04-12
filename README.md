@@ -1,13 +1,8 @@
-# Tidy time series analysis
-
-#### 1 timetk: A toolkit for time series analysis in the tidyverse
-* Tutorials with R: Still in progress😓
-#### 2 modeltime: Tidy time series forecasting with tidymodels
-* Prerequisites: https://github.com/be-favorite/Tutorial_tidymodels
+# tidyverts: Tidy tools for time series
 * Tutorials with R: Still in progress😓
 
 ## Introduction
-Modeltime Ecosystem을 이용해 전처리, 시각화부터 모델링, 예측까지 시계열 자료분석의 모든 과정을 Tidy하게 진행해봅시다.:blush:
+{tidyverts}를 이용해 전처리, 시각화부터 모델링, 예측까지 시계열 자료분석의 모든 과정을 "Tidy" framework로 진행해봅시다.:blush:
 
 <br>
 
