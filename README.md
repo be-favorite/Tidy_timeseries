@@ -2,11 +2,15 @@
 * Tutorials with R: Still in progress😓
 
 ## Introduction
-{tidyverts}는 전처리, 시각화부터 모델링, 예측까지 시계열 자료분석의 모든 과정을 "Tidy" framework로 진행하게 해주는 패키지입니다.
+tidyverts는 전처리, 시각화부터 모델링, 예측까지 시계열 자료분석의 모든 과정을 "Tidy" framework로 진행하게 해주는 ecosystem입니다.
 
-{tidyverse}, {tidymodels}에 익숙한 저로써는 정말 반가운 패키지네요.
+6개의 패키지가 [tidyverts](https://tidyverts.org/)를 이루고있으며, R에서는 {fpp3}라는 이름으로 tidyverts ecosystem을 이루고있는 대부분의 패키지들을 불러올 수 있습니다.
 
-R을 이용해 간략한 튜토리얼을 진행해봤습니다. 상단 링크를 참고해주세요.:blush:
+{fable.prophet}, {tsibbletalk}는 필요하다면 따로 로딩이 필요합니다. 
+
+tidyverts ecosystem을 {tidyverts}가 아닌 {fpp3}으로 불러와야 한다는 점이 조금 마음에 안들긴하지만, {tidyverse}, {tidymodels}에 익숙한 분들께는 정말 반가운 패키지들이라 생각합니다.
+
+R을 이용해 간략한 튜토리얼들을 진행해봤습니다. 상단 링크를 참고해주세요.:blush:
 
 <br>
 
