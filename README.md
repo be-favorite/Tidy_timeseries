@@ -6,7 +6,7 @@ tidyverts는 전처리, 시각화부터 모델링, 예측까지 시계열 자료
 
 <br>
 
-tidyverts ecosystem의 패키지들을 {tidyverts}가 아닌 {fpp3}라는 이름으로 불러와야 한다는 점이 조금 마음에 안들긴하지만, {tidyverse}, {tidymodels}에 익숙한 분들께는 정말 반가운 패키지들이라 생각합니다. R을 이용해 간략한 튜토리얼들을 진행해봤습니다. 상단 링크를 참고해주세요.:blush:
+tidyverts ecosystem의 패키지들을 {tidyverts}가 아닌 {fpp3}라는 이름으로 불러와야 한다는 점이 조금 아쉽긴하지만, {tidyverse}, {tidymodels}에 익숙한 분들께는 정말 반가운 패키지들이라 생각합니다. R을 이용해 간략한 튜토리얼들을 진행해봤습니다. 상단 링크를 참고해주세요.:blush:
 
 <br>
 
