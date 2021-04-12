@@ -7,7 +7,7 @@
 * Tutorials with R: Still in progress😓
 
 ## Introduction
-Modeltime Ecosystem을 이용해 전처리, 시각화부터 모델링, 예측까지 시계열 자료분석의 모든 과정을 Tidy하게 진행해봅시다.
+Modeltime Ecosystem을 이용해 전처리, 시각화부터 모델링, 예측까지 시계열 자료분석의 모든 과정을 Tidy하게 진행해봅시다.:blush:
 
 <br>
 
