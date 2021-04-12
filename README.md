@@ -1,4 +1,4 @@
-# tidyverts: Tidy tools for time series
+# tidyverts: tidy tools for time series
 * Tutorials with R: Still in progress😓
 
 ## Introduction
