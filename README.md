@@ -1,5 +1,5 @@
 # tidyverts: tidy tools for time series
-* Tutorials with R: Still in progress😓
+* Tutorials with R: https://be-favorite.github.io/tidyverts/ (Still in progress😓)
 
 ## Introduction
 tidyverts는 전처리, 시각화부터 모델링, 예측까지 시계열 자료분석의 모든 과정을 "Tidy" framework로 진행하게 해주는 ecosystem입니다. 6개의 패키지가 [tidyverts](https://tidyverts.org/)를 이루고있으며, R에서는 {fpp3}라는 이름으로 tidyverts ecosystem을 이루고있는 대부분의 패키지들을 불러올 수 있습니다. {fable.prophet}, {tsibbletalk}는 필요하다면 따로 로딩이 필요합니다.
