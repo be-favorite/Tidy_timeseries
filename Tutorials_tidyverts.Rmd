@@ -1,0 +1,207 @@
+---
+title: "<center> **<font size = 5>tidyvert: tidy tools for time series **</font> </center>"
+author: "방태모"
+date: "2021-04-12"
+output: 
+  rmdformats::robobook
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+<style>
+.math {
+  font-size: small;
+}
+</style>
+
+<br>
+
+## **0 Before Start**
+***
+If you are familiar with English, go to [7 Reference](#anchor). And this text is provided by [my Github repository](https://github.com/be-favorite/tidyverts)
+
+<br>
+
+## **1 Preparing**
+***
+tidyverts ecosystem을 이루는 대부분의 패키지들은 [Introduction](https://github.com/be-favorite/tidyverts)에서 말했듯이, {fpp3}으로 불러올 수 있습니다:
+```{r}
+library(fpp3)
+```
+
+```{r, message = FALSE}
+library(fable.prophet)
+library(tsibbletalk)
+library(nycflights13) # for nycflights13 data
+library(purrr) # for map()
+library(shiny) # for {tsibbletalk}
+ggplot2::theme_set(theme_minimal())
+loaded_package <- c("fable.prophet", "tsibbletalk", "nycflights13", "purrr", "shiny")
+.version <- map(loaded_package, packageVersion)
+names(.version) <- loaded_package
+.version
+```
+
+위 패키지들이 설치되어 있지 않은 분들은 튜토리얼의 본격적인 시작전에, `install.packages("패키지명")`을 통해 설치해주시기 바랍니다. 개발 버전을 설치하고 싶다면 다음과 같은 코드를 활용하면 됩니다:
+```{r, eval = FALSE}
+# install.packages("remotes")
+remotes::install_github("tidyverts/tsibble")
+```
+
+<br>
+
+<a href='https://tsibble.tidyverts.org/'><img src='logo_tsibble.png' align="right" height="138.5" /></a>
+
+## **2 tsibble**
+***
+
+### 2.1 Get Started
+{tsibble}은 일반적인 시계열 자료를 `tibble` 형태로 표현할 수 있게해줍니다. 우리는 `tsibble()`을 통해 [tidy한 자료](https://tidyr.tidyverse.org/articles/tidy-data.html)에 대해 수행해왔던 {tidyverse}를 이용한 wrangling을 수행할 수 있습니다. 즉, tidyverse ecosystem이 tibble 객체를 기반으로 동작하듯이, tidyverts ecosytem은 tsibble 객체를 기반으로 동작합니다. tsibble 객체가 갖는 기본적인 원칙은 다음과 같습니다:
+
+* `index`: 과거부터 현재까지 순서화된 자료값의 관측 시간
+* `key`: 시간에 따른 관측 단위를 정의하는 변수의 집합
+* 각 관측치는 `index`와 `key`를 통해 유일하게(uniquely) 식별되어야만 함
+* 각 관측치는 등간격으로 관측된 자료여야만 함
+
+즉, 티블(데이터프레임)을 `tsibble`로 변환하기(coerce) 위해서는 `key`와 `index`를 명시해주어야 합니다. 예를 들어, 다음과 같은 {nycflights13} 패키지의 `weather` 자료를 이용해보겠습니다:
+```{r}
+weather_simple <- nycflights13::weather %>% 
+    select(origin, time_hour, temp, humid, precip)
+weather_simple
+```
+
+`origin`을 `key`로 `index`를 `time_hour`로 해주면 될 것 같습니다:
+```{r}
+weather_tsbl <- as_tsibble(weather_simple, key = origin, index = time_hour)
+weather_tsbl
+```
+
+여기서는 자료 자체가 출발지(`origin`) 별로 기록된 다중(multiple) 시계열에 해당하므로, `key`를 `origin`으로 잡아줬지만, 만약 자료가 단일(univariate) 시계열에 해당한다면 해당 key는 설정을 하지 않으면 됩니다(see `package?tsibble` and `vignette("intro-tsibble")` for details). 그리고, 사실 `tsibble()`은 irregular time interval을 갖는 자료에 대해서도 적용이 가능합니다. as_tsibble은 `regular = TRUE` 옵션이 default로 설정되는데, 이를 `FALSE`로 바꿔주면 되며, 이러한 irregular time interval을 갖는 tsibble 객체의 경우는 `[!]` 표시를 통해 확인할 수 있습니다:
+```{r}
+nycflights13::flights %>%
+    mutate(
+      sched_dep_datetime = make_datetime(year, month, day, hour, minute, 
+                                         tz = "America/New_York")) %>%
+    as_tsibble(
+        key = c(carrier, flight), 
+        index = sched_dep_datetime, 
+        regular = FALSE
+        )
+```
+
+
+### 2.2 Turn impicit missing values into explicit missing values
+간혹 시계열 자료에는 암묵적 결측치(implicit missing values)가 존재하는 경우가 있다. 암묵적 결측치가 존재하는 시계열 자료가 일정한 시간 간격으로 수집되었을 경우, 우리는 `fill_gaps()`를 이용해 암묵적 결측을 명시적으로(explicit) 바꿀 수 있다. 4년간 수집된 연도별 키위, 체리의 수확량(단위: kg)에 관한 자료를 직접 만들어서 `fill_gaps()`의 쓰임에 대해 알아보자. 본 자료에는 암묵적 결측이 존재한다:
+```{r}
+harvest <- tsibble(
+    year = c(2010, 2011, 2013, 2011, 2012, 2014),
+    fruit = rep(c("kiwi", "cherry"), each = 3),
+    kilo = sample(1:10, size = 6),
+    key = fruit, index = year
+)
+harvest
+```
+
+암묵적 결측이란, 예를 들어 위 자료처럼 체리 생산량이 2010년에는 기록되지 않았음에도 불구하고 행이 생략되어있는 것을 말한다. `NA`로 명시는 다음과 같이 손쉽게 가능하다:
+```{r}
+fill_gaps(harvest, .full = TRUE)
+```
+
+다음의 각각 시작점, 끝점에 대해서만 결측치를 명시한다:
+```{r}
+# at the same starting point across units
+fill_gaps(harvest, .full = start())
+# at the same end point across units
+fill_gaps(harvest, .full = end())
+```
+
+`.full = FALSE`를 설정할 경우(`fill_gaps()`의 default 옵션에 해당), 각 key 내의 period에서 발생한 결측에 대해서만 명시가 이루어진다.
+```{r}
+fill_gaps(harvest, .full = FALSE)
+```
+
+특정값으로의 명시도 손쉽게 수행이 가능하다.
+```{r}
+harvest %>% 
+    fill_gaps(kilo = 0L)
+```
+
+변수에 대해 함수를 적용하여 명시도 가능하다. `sum()`을 이용하여 합으로 명시해보았다:
+```{r}
+harvest %>%
+    fill_gaps(kilo = sum(kilo))
+```
+
+`key`에 대해 `group_by`를 통해 각 그룹에 대해 함수를 적용할 수도 있다. 이번에는 `median()`을 통해 중위수로 명시해보았다:
+```{r}
+harvest %>%
+    group_by_key() %>%
+    fill_gaps(kilo = median(kilo))
+```
+
+원 자료 자체에 `NA`가 존재하는 경우, 적용하고자 하는 함수에 `na.rm = TRUE`을 설정해주면 된다:
+```{r}
+harvest[2, 3] <- NA
+harvest %>%
+    group_by_key() %>%
+    fill_gaps(kilo = median(kilo, na.rm = TRUE))
+```
+
+마지막으로, `fill_gaps()`아 `tidyr::fill()`을 함께 이용하면 암묵적 결측치를 이전 시점의 결측치로 대치할 수 있다.
+```{r}
+harvest <- tsibble(
+    year = c(2010, 2011, 2013, 2011, 2012, 2014),
+    fruit = rep(c("kiwi", "cherry"), each = 3),
+    kilo = sample(1:10, size = 6),
+    key = fruit, index = year
+)
+harvest %>%
+    group_by_key() %>%
+    fill_gaps() %>%
+    tidyr::fill(kilo, .direction = "down")
+```
+
+반대로, 한 시점 미래의 값으로 대치도 가능하다.
+```{r}
+harvest %>%
+    group_by_key() %>%
+    fill_gaps() %>%
+    tidyr::fill(kilo, .direction = "up")
+```
+
+### 2.3 Aggregate over calendar periods
+`index_by()`와 `summarise()`를 이용하면 관심있는 변수에 대해 특정 시간 주기(e.g. monthly)에 대해 함수(e.g. 합계: `sum()`, 평균: `mean()`)를 적용할 수 있다. `index_by`는 `as.Date()`, `tsibble::yearweek()`, `tsibble::yearmonth()`, `tsibble::yearquarter()`, 뿐만 아니라 {lubridate} 계열의 함수와 함께 사용된다. 예를 들어, `weather` 자료의 월별 평균 기온, 총 강수량은 다음과 같이 `yearmonth()`에 `index` 변수를 `.`으로 나타내어 계산할 수 있다.
+```{r}
+weather_tsbl %>% 
+    group_by_key() %>% 
+    index_by(year_month = ~yearmonth(.)) %>%
+    summarise(
+        avg_temp = mean(temp, na.rm = TRUE),
+        total_precip = sum(precip, na.rm = TRUE)
+    )
+```
+
+`index_by()`+`summarise()`는 irregular time interval을 갖는 tsibble에 대해서도 수행이 가능하다.
+
+<br>
+
+<a href='https://tsibbledata.tidyverts.org/'><img src='logo_tsibbledata.png' align="right" height="138.5" /></a>
+
+## **3 tsibbledata**
+***
+
+
+<br>
+
+<a href='https://feasts.tidyverts.org'><img src='logo_feasts.png' align="right" height="138.5" /></a>
+
+## **4 feasts**
+***
+{feasts}는 Feature Extraction And Statistics for Time Series의 약자로, 시계열 자료분석에 쓰이는 여러가지 툴을 제공해줍니다. tsibble 객체와 함께 동작하며, 시계열의 분해, feature 추출(e.g. 추세, 계절성), 시각화 등을 수행할 때 쓰입니다. 아울러, {feasts}를 통한 시계열 자료분석은 다음 섹션에서 소개할 tidyverts ecosystem의 예측 모델링 부분을 담당하는 {fable} 패키지와 긴밀하게 결합하여 사용됩니다.
+
+<br>
+
+## **7 Reference**
+***
+* https://tidyverts.org/
+* https://github.com/earowang/tsibbletalk
