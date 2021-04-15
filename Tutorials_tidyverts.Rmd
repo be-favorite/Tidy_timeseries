@@ -18,7 +18,7 @@ editor_options:
 
 ## **0 Before Start**
 ***
-If you are familiar with English, go to [7 Reference](#anchor). And this text is provided by [my Github repository](https://github.com/be-favorite/tidyverts)
+If you are familiar with English, go to [7 Reference](#anchor1). And this text is provided by [my Github repository](https://github.com/be-favorite/tidyverts)
 
 <br>
 
@@ -285,7 +285,7 @@ aus_production %>%
 
 <br>
 
-## **7 Reference**
+## **7 Reference**{#anchor1}
 ***
 * https://tidyverts.org/
 * https://github.com/earowang/tsibbletalk
