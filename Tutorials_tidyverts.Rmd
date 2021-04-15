@@ -189,7 +189,23 @@ weather_tsbl %>%
 
 ## **3 tsibbledata**
 ***
+{tsibbledata}는 tsibble 형태의 다양한 예제 자료를 제공해줍니다. 어떤 패키지에 대한 튜토리얼을 진행할 때, 적절한 자료들이 필요로 되는데, 이렇게 예제 자료를 직접적으로 제공해준다는 점에서 R 유저들에 대한 배려가 담겨있다는 생각이 드네요. 예를 들어, 다음의 `olympic_running`은 4년 주기로 수집된 올림픽 달리기 종목의 성별 최고기록에 관한 자료입니다(see `?olympic_running` for details).
+```{r}
+olympic_running
+```
 
+이 자료를 이용하여 달리기 종목별 최고 기록에 대한 시도표를 성별로 나누어서 그려보았습니다. 참고로, 1916, 1940, 1944년의 경우 세계대전으로 인해 결측 처리되었습니다.
+
+```{r olympic, warning = FALSE, out.width = "80%", fig.align = "center"}
+ggplot(olympic_running, aes(x = Year, y = Time, colour = Sex)) +
+  geom_line() +
+  geom_point(size = 1) +
+  facet_wrap(~ Length, scales = "free_y", nrow = 2) + 
+  theme_minimal() + 
+  scale_color_brewer(palette = "Dark2") + 
+  theme(legend.position = "bottom", legend.title = element_blank()) +
+  ylab("Running time (seconds)")
+```
 
 <br>
 
@@ -198,6 +214,74 @@ weather_tsbl %>%
 ## **4 feasts**
 ***
 {feasts}는 Feature Extraction And Statistics for Time Series의 약자로, 시계열 자료분석에 쓰이는 여러가지 툴을 제공해줍니다. tsibble 객체와 함께 동작하며, 시계열의 분해, feature 추출(e.g. 추세, 계절성), 시각화 등을 수행할 때 쓰입니다. 아울러, {feasts}를 통한 시계열 자료분석은 다음 섹션에서 소개할 tidyverts ecosystem의 예측 모델링 부분을 담당하는 {fable} 패키지와 긴밀하게 결합하여 사용됩니다.
+
+### 4.1 Graphics
+시각화는 주로 시계열 자료의 패턴을 이해하기 위한 첫 단계에 많이 이루어집니다. {feasts}는 시계열의 패턴을 {ggplot2}를 사용해 자유롭게 커스텀할 수 있는 그래픽을 제공합니다. 첫 번째로는 `gg_season`을 이용한 계절성(seasonality) 시각화입니다. 시각화에 사용된 자료 `tsibbledata::aus_production`은 호주의 맥주, 담배 등의 품목에 관한 분기별 생산지표 추정치에 관한 자료입니다. 맥주의 분기별 생산지표에 관한 계절성 시각화를 수행해보았습니다:
+
+```{r season, warning = FALSE, out.width = "80%", fig.align = "center"}
+aus_production %>% 
+  gg_season(Beer)
+```
+
+다음으로 `gg_subseries()`를 이용하면 시계열의 각 season별로 시각화가 가능합니다. 예를 들어, `aus_production`과 같은 분기별 자료의 경우 분기별 패턴에 대한 시각화를 쉽게 수행할 수 있습니다:
+
+```{r subseries, warning = FALSE, out.width = "80%", fig.align = "center"}
+aus_production %>% 
+  gg_subseries(Beer)
+```
+
+`gg_lag()`를 이용하면 원자료와 시차(lag)의 산점도를 season별로 나누어 그릴 수 있습니다:
+```{r lag, warning = FALSE, out.width = "80%", fig.align = "center"}
+aus_production %>% 
+  filter(year(Quarter) > 1991) %>% 
+  gg_lag(Beer, geom = "point")
+```
+
+분기별 자료의 특성상, lag 4와 8 그림을 보면 각 season별로 원자료와의 관계가 $y=x$ 직선에 잘 놓여있는 것을 캐치할 수 있죠. 마지막으로 ACF 그림도 손쉽게 그릴 수 있습니다:
+```{r acf, warning = FALSE, out.width = "80%", fig.align = "center"}
+aus_production %>% 
+  ACF(Beer) %>% 
+  autoplot()
+```
+
+### 4.2 Decompositions
+시계열 분해(decomposition)는 시계열 자료분석에서 흔히 수행되는 작업 중 하나이며, 이는 시계열에 대한 패턴을 이해하는데에 큰 도움을 줍니다. 그리고, 추후 예측 모델링을 정교하게 하는 것에도 상당한 도움을 준다. 즉, 시계열 분해는 본인이 분석하고자 하는 시계열의 패턴을 좀 더 정교하게 캐치하고 예측 성능을 향상시키기 위한 목적으로 꼭 필요로 되는 사전 작업이라고 할 수 있습니다. 본 튜토리얼에서는 {feasts}에서 제공하고 있는 2가지 시계열 분해 방법에 대해 소개하려고 합니다.
+
+#### 4.2.1 Classical decompostion
+classical decompostion은 1920년대에 고안된 방법입니다. 오래된 방법론인 만큼 요즘 쓰이는 시계열 분해 방법들의 초석이 되는 방법이라고 할 수 있으며, 다른 방법들에 비해 상대적으로 간단하다는 장점이 있습니다. classical decompostion은 가법 분해와 승법 분해가 있습니다. 두 방법은 계절성의 반영 방식에 따라 나뉩니다(e.g. 분기별 자료 $m = 4$, 월별 자료 $m = 12$, 일별 자료 $m = 7$). 보통 가법 classical decompostion의 경우 계절성이 추세에 따라 무관하게 일정한 크기를 유지할 때 사용하며, 반대로 계절성의 크기가 추세의 크기에 따라 변화하는 경우에는 승법 classical decompostion을 사용합니다. 승법 계절성  classical decompostion는 계절 성분이 연도에 따라 상수라고 가정한채로 진행되며, 승법 계절성에서 계절 성분을 형성하는 $m$은 계절 지수(seasonal indices)라 불리기도 합니다.
+
+<br>
+
+classical decompostion의 자세한 분해 과정은 [여기](https://otexts.com/fpp3/classical-decomposition.html)를 참고해주시기 바랍니다. 여기서는 바로 R을 이용한 튜토리얼을 진행하겠습니다. 앞서 사용했던 자료의 맥주 생산지표를 가법 classical decomposition을 통해 분해해보겠습니다.
+```{r}
+dcmp <- aus_production %>%
+    model(classical_decomposition(Beer, type = "additive"))
+components(dcmp)
+```
+
+먼저, 분해된 시계열의 요소들은 `componenets()`로 불러올 수 있습니다. 그리고, 이 `components()`에 대해 `autoplot()`을 수행해주면 다음과 같이 시각화를 수행할 수 있습니다:
+
+```{r classical, warning = FALSE, out.width = "80%", fig.align = "center"}
+dcmp %>%
+    components() %>% 
+    autoplot() +
+    labs(title = "Classical additive decomposition of Quarterly production of beer in Australia")
+```
+
+#### 4.2.2 STL decomposition
+STL은 "Seasonal and Trend decomposition using Loess"의 준말로 다재다능(versatile)하고 로버스트한 시계열 분해 방법에 해당한다. 여기서 loess란, [Local regression](https://be-favorite.tistory.com/58?category=923110)의 준말로 자료를 비선형으로 추정하는 방법 중 하나에 해당한다. STL은 앞서 소개한 classical decomposition, 그리고 {feasts}에서 제공하는 또 다른 시계열 분해 방법 [SEATS, X-11](https://otexts.com/fpp3/methods-used-by-official-statistics-agencies.html)과 비교하여 몇몇 이점을 갖는다. 자세한 사항은 [여기](https://otexts.com/fpp3/stl.html)를 참고해주세요. 본 글은 tidyverts ecosystem에 대한 소개 이므로, deep한 이론 정리는 추후에 fpp3 책을 공부하면서 하나하나 정리해나가겠습니다. 일단 바로 실습으로 넘어가겠습니다.`r emo::ji("blush")` 다음은 STL decomposition을 이용하여 시계열의 추세 요소는 `window = 7`을 통해 좀 더 flexible하게 추정하고, 계절 패턴의 경우는 `window = "periodic"`으로 하여 고정(fixed)되도록 하였습니다(see `?STL` for details). 여기서. `window`란, 창을 말하며 자료를 여러 창으로 잘게 쪼갤수록 더 flexible하고 복잡한 함수를 추정하게 됩니다. [splines](https://be-favorite.tistory.com/56?category=923110)에 지식이 있는 분들은 이해하기 쉬울거라고 생각합니다. 
+
+```{r STL, warning = FALSE, out.width = "80%", fig.align = "center"}
+aus_production %>%
+  model(
+    STL(Beer ~ trend(window = 7) + season(window = "periodic"),
+        robust = TRUE)) %>%
+  components() %>%
+  autoplot()
+```
+
+### 4.3 Feature extraction and statistics
+{feast}에서 소개할 마지막 기능은 해당 시계열이 
 
 <br>
 
