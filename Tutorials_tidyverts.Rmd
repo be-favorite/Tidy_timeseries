@@ -281,7 +281,69 @@ aus_production %>%
 ```
 
 ### 4.3 Feature extraction and statistics
-{feast}에서 소개할 마지막 기능은 해당 시계열이 
+{feast}에서 소개할 마지막 기능은 시계열의 feature(e.g. ACF)와 통계량(e.g. 평균)을 뽑아내는 것입니다. {feast}에서는 `feature()` 함수를 통해 많은 종류의 features들에 대한 정보를 제공합니다만, 본 튜토리얼에서는 시계열의 평균, 분위수, ACF를 뽑아내는 방법에 대해서만 소개하겠습니다(see `?feature` for details). 그 외 다른 features들에 관심이 있으시다면, [여기](https://otexts.com/fpp3/some-simple-statistics.html)를 참고해주세요.
+
+#### 4.3.1 Some simple statistics
+먼저, 시계열의 평균과 분위수를 뽑는 방법에 대해 소개하겠습니다. 평균, 분위수 등 시계열의 기본적인 통계량은 `feature()`와 R의 기본 함수(e.g. `mean()`, `median()`)들을 이용해 간편하게 계산할 수 있습니다. 여기서 이용할 자료 `tourism()`은 지역, 주, 목적별로 나눠진 1998-2016년 분기별 호주 여행객수에 관한 자료로, 지역, 주, 여행 목적별 여행객 수의 전체 평균과 분위수를 계산해봤습니다:
+```{r}
+tourism %>%
+    features(Trips, 
+             list(mean = mean, quantile))
+```
+
+#### 4.3.2 ACF features
+ACF에 관한 정보는 `feat_acf()`를 이용하면 됩니다. `feat_acf()`는 기본적으로 ACF와 관련한 6가지 또는 최대 7가지의 features를 제공해줍니다(see `?feat_acf()` for details):
+
+* 원 계열의 1차 자기상관계수
+* 원 계열의 1차-10차 자기상관계수의 제곱합
+* 1차 차분 계열의 1차 자기상관계수
+* 1차 차분 계열의 1차-10차 자기상관계수의 제곱합
+* 2차 차분 계열의 1차 자기상관계수
+* 2차 차분 계열의 1차-10차 자기상관계수의 제곱합
+* (계절 시계열에 대해) 첫번째 계절 시차(seasonal lag)에서의 자기상관계수
+
+```{r}
+tourism %>% 
+  features(Trips, feat_acf)
+```
+
+맨 마지막 열이 첫번째 계절 시차에서의 자기상관계수를 나타내는데, 본 자료의 경우 분기별 자료에 해당하므로 계절 주기는 4에 해당합니다. 즉, 본 자료에서 첫번째 계절 시차에서의 자기상관계수는 원 계열의 시차 4에서의 ACF 값을 나타낸다고 할 수 있습니다.
+```{r}
+tourism %>% 
+  features(Trips, feat_acf) %>% 
+  select(Region:Purpose, season_acf1)
+```
+
+원자료에 대한 ACF를 구해보면 다음과 같이 시차 4에서의 자기상관계수와 동일한 값을 가짐을 알 수 있죠:
+```{r}
+tourism %>% 
+  ACF(Trips)
+```
+
+본 튜토리얼에서는 소개하지 않았지만, `feature()`를 이용한 시계열 feature extraction과 연계하여 다양한 시각화도 수행할 수 있습니다. 꼭 참고해보시기 바랍니다: https://otexts.com/fpp3/stlfeatures.html
+
+<br>
+
+<a href='https://fable.tidyverts.org'><img src='logo_fable.png' align="right" height="138.5" /></a>
+
+## **5 fable**
+***
+{fable} 패키지는 tsibble 객체와 함께 tidy한 format으로 시계열 예측 모델링을 수행할 수 있게해줍니다. [{tidymodels}](https://github.com/be-favorite/Tutorial_tidymodels) 패키지에 대한 이해가 있으신 분들이라면 어렵지 않으실거라 생각합니다. {tidymodels}과 마찬가지로 {fable}은 여러 시계열에 대해 여러 시계열 모형에 대한 추정, 비교, 결합, 예측 등을 가능하게해줍니다.
+
+본격적인 튜토리얼 시작에 앞서, `tourism()` 자료를 이용할 것이며, 4가지 여행 목적("business", "holiday", "visiting friends and relatives", "other reasons")으로 분해할 수 있는 호주 멜버른(Melbourne)의 일별 여행객 수를 예측하는 것에 관심이 있다고 가정합니다. 각 계열의 첫 번째 관측값은 다음과 같습니다:
+```{r}
+tourism_melb <- tourism %>% 
+  filter(Region == "Melbourne")
+tourism_melb %>% 
+  group_by(Purpose) %>% 
+  slice(1)
+```
+
+우리가 추정하고자 하는 변수는 `Trips`(일별 여행객 수, 단위: 천)입니다. 해당 계열들의 시도표를 보면, 추세와 약한 계절성이 명확하게 존재함을 알 수 있습니다.
+```{r melbourne, warning = FALSE, out.width = "80%", fig.align = "center"}
+tourism_melb %>% 
+  autoplot(Trips)
+```
 
 <br>
 
